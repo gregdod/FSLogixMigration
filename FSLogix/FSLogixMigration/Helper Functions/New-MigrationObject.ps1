@@ -17,6 +17,10 @@
     .PARAMETER VHD
         By default, a VHDX will be the expected output for a target. If the VHD flag is set, a VHD will be created instead.
 
+    .PARAMETER SwapDirectoryNameComponents
+        By default, directory name is SID_Username. If SwapDirectoryNameComponents is set, directory name will be Username_SID.
+        Set this if the GPO Setting 'Swap directory name components' is enabled.
+
     .EXAMPLE
         New-MigrationObject -ProfilePath "C:\users\User1.V2" -Target "\\Server\FSLogixProfiles$"
 
@@ -44,7 +48,8 @@
     .NOTES
         Author: Dom Ruggeri
         Last Edit: 06/27/2019
-    
+
+        Modified by Mike Driest 10/14/2022.  Added Parameter SwapDirectoryNameComponents    
     #>
     Function New-MigrationObject {
         
@@ -57,7 +62,10 @@
         [string]$Target,
 
         [Parameter(ValueFromPipelineByPropertyName)]
-        [switch]$VHD
+        [switch]$VHD,
+
+        [Parameter()]
+        [switch]$SwapDirectoryNameComponents
     )
     
     Begin {
@@ -115,7 +123,13 @@
                     $Target = $Target+"\"
                 }
                 if ($UserSID -ne "SID Not Found"){
-                    $NewTarget = $Target+$UserSID+"_"+$Username+"\Profile_"+$Username+$Extension
+                    if ($SwapDirectoryNameComponents -eq $true) {
+                        $NewTarget = $Target+$Username+"_"+$UserSID+"\Profile_"+$Username+$Extension
+                    }
+                    else {
+                        $NewTarget = $Target+$UserSID+"_"+$Username+"\Profile_"+$Username+$Extension
+                    }
+                    
                 }
                 else {
                     $NewTarget = "Cannot Copy"

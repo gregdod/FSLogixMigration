@@ -31,8 +31,12 @@
     .PARAMETER VHD
         By Default the command will create a VHDX file at the destination unless this flag is set. If the -VHD flag is set, a VHD will be created at the destination for each profile.
 
+    .PARAMETER SwapDirectoryNameComponents
+        By default, directory name is SID_Username. If SwapDirectoryNameComponents is set, directory name will be Username_SID.
+        Set this if the GPO Setting 'Swap directory name components' is enabled.
+
     .PARAMETER IncludeRobocopyDetail
-        Robocopy details are supressed by default and will just show an overall progress bar of moved bytes. If a terminal output of transmitted files in real-time is desired, ues this flag.
+        Robocopy details are supressed by default and will just show an overall progress bar of moved bytes. If a terminal output of transmitted files in real-time is desired, uses this flag.
 
     .PARAMETER LogPath
         Specifies log path. The file format is Text based, so a .log or .txt is expected.
@@ -43,6 +47,13 @@
         The example above will take inventory of all child-item directories, create a VHDX with a max size of 20GB, and copy the source profiles to their respective destinations.
         
     .EXAMPLE
+        Convert-UPDProfile -ParentPath F:\Shares\UPDs -Target F:\Shares\FSLogixProfiles -VHDMaxSizeGB 30 -VHDLogicalSectorSize 4K -SwapDirectoryNameComponents -LogPath F:\LogFiles\UPDtoFSLogixMigration\Log.txt
+
+        The example above will take inventory of all child-item directories, create a VHDX with a max size of 30GB, and copy the source profiles to their respective destinations.
+        
+        FSLogix Profile directory names will be created using username_SID to work with GPO setting 'Swap directory name components'
+    
+        .EXAMPLE
         Convert-UPDProfile -ProfilePath "C:\Users\UserDisk1.vhd" -Target "\\Server\FSLogixProfiles$" -VHDMaxSizeGB 20 -VHDLogicalSectorSize 512 -VHD -IncludeRobocopyDetail -LogPath C:\temp\Log.txt
 
         The example above will take the User1 profile, create a VHD with a max size of 20GB, and copy the source profiles to their respective destinations. /TEE will be added to Robocopy parameters, and a Log will be generated at C:\Temp\Log.txt
@@ -50,6 +61,8 @@
     .NOTES
         Author: Dom Ruggeri
         Last Edit: 7/23/19
+
+        Modified by Mike Driest 10/14/2022.  Added Parameter SwapDirectoryNameComponents
     
     #>
 Function Convert-UPDProfile {
@@ -79,6 +92,9 @@ Function Convert-UPDProfile {
         [switch]$VHD,
 
         [Parameter()]
+        [switch]$SwapDirectoryNameComponents,
+
+        [Parameter()]
         [switch]$IncludeRobocopyDetail,
 
         [Parameter()]
@@ -98,10 +114,13 @@ Function Convert-UPDProfile {
         if ($VHD) {
             $Params = @{
                 'VHD' = $true
+                'SwapDirectoryNameComponents' = $SwapDirectoryNameComponents
             }
         }
         else {
-            $Params = @{ }
+            $Params = @{
+                'SwapDirectoryNameComponents' = $SwapDirectoryNameComponents
+            }
         }
         
         if ($ParentPath) {

@@ -87,7 +87,7 @@ Convert-RoamingProfile
 
  
 
-`Convert-RoamingProfile -ParentPath <String> -Target <String> -VHDMaxSizeGB <UInt64> -VHDLogicalSectorSize <String> [-VHD][-IncludeRobocopyDetail] [-LogPath <String>] [-WhatIf] [-Confirm] [<CommonParameters>]`
+`Convert-RoamingProfile -ParentPath <String> -Target <String> -VHDMaxSizeGB <UInt64> -VHDLogicalSectorSize <String> [-VHD] [-IncludeRobocopyDetail] [-LogPath <String>] [-WhatIf] [-Confirm] [<CommonParameters>]`
 
  
 
@@ -103,22 +103,23 @@ Convert-RoamingProfile
 
  
 
-`Convert-UPDProfile -ParentPath <String> -Target <String> -VHDMaxSizeGB <UInt64> -VHDLogicalSectorSize <String> [-VHD] [-IncludeRobocopyDetail] [-LogPath <String>] [-WhatIf] [-Confirm] [<CommonParameters>] `
+`Convert-UPDProfile -ParentPath <String> -Target <String> -VHDMaxSizeGB <UInt64> -VHDLogicalSectorSize <String> [-VHD] [-SwapDirectoryNameComponents] [-IncludeRobocopyDetail] [-LogPath <String>] [-WhatIf] [-Confirm] [<CommonParameters>] `
 
  
 
-`Convert-UPDProfile -ProfilePath <String> -Target <String> -VHDMaxSizeGB <UInt64> -VHDLogicalSectorSize <String> [-VHD] [-IncludeRobocopyDetail] [-LogPath <String>] [-WhatIf] [-Confirm] [<CommonParameters>] `
+`Convert-UPDProfile -ProfilePath <String> -Target <String> -VHDMaxSizeGB <UInt64> -VHDLogicalSectorSize <String> [-VHD] [-SwapDirectoryNameComponents] [-IncludeRobocopyDetail] [-LogPath <String>] [-WhatIf] [-Confirm] [<CommonParameters>] `
 
  
 
-`Convert-UPDProfile -CSV <String> -Target <String> -VHDMaxSizeGB <UInt64> -VHDLogicalSectorSize <String> [-VHD] [-IncludeRobocopyDetail] [-LogPath <String>] [-WhatIf] [-Confirm] [<CommonParameters>] `
+`Convert-UPDProfile -CSV <String> -Target <String> -VHDMaxSizeGB <UInt64> -VHDLogicalSectorSize <String> [-VHD] [-SwapDirectoryNameComponents] [-IncludeRobocopyDetail] [-LogPath <String>] [-WhatIf] [-Confirm] [<CommonParameters>] `
 
  
 
-# Examples 
+# Examples
 
-`PS Convert-RoamingProfile -ParentPath "\\vda01\C$\Users\" -Target "\\dc01.deyda.local\Container-New" -V
-HDMaxSizeGB 20 -VHDLogicalSectorSize 512 -VHD` 
+`PS C:\>Convert-UPDProfile -ParentPath F:\Shares\UPDs -Target F:\Shares\FSLogixProfiles -VHDMaxSizeGB 30 -VHDLogicalSectorSize 4K -SwapDirectoryNameComponents -LogPath F:\LogFiles\UPDtoFSLogixMigration\Log.txt`
+
+The example above will take inventory of all child-item directories, create a VHDX with a max size of 30GB, and copy the source profiles to their respective destinations.  FSLogix Profile directory names will be created using username_SID to work with GPO setting 'Swap directory name components'
 
 `PS C:\>Convert-RoamingProfile -ParentPath "C:\Users\" -Target "\\Server\FSLogixProfiles$" -MaxVHDSize 20 -VHDLogicalSectorSize 512`                                                                                                     
 
@@ -128,8 +129,6 @@ The example above will take inventory of all child-item directories, create a VH
 
 
 The example above will take the User1 profile, create a VHD with a max size of 20GB, Sector Size 512, and copy the source profiles to their respective destinations. /TEE will be added to Robocopy parameters, and a Log will be generated at C:\Temp\Log.txt 
-
- 
 
 `PS C:\>Convert-UPDProfile -ParentPath "C:\Users\" -Target "\\Server\FSLogixProfiles$" -MaxVHDSize 20 -VHDLogicalSectorSize 512 `
 
