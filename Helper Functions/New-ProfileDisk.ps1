@@ -72,7 +72,7 @@
             get-disk -number {$_.DiskNumber} | `
             Initialize-Disk -PartitionStyle GPT -PassThru | `
             New-Partition -UseMaximumSize -AssignDriveLetter:$False | `
-            Format-Volume -Confirm:$false -FileSystem NTFS -force | `
+            Format-Volume -Confirm:$false -FileSystem NTFS -NewFileSystemLabel "Profile-$($Username)" -force | `
             get-partition | `
             Add-PartitionAccessPath -AssignDriveLetter -PassThru | `
             Dismount-VHD $Target -ErrorAction SilentlyContinue
