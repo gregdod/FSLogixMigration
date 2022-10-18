@@ -26,7 +26,7 @@ Following are the list of PowerShell modules to be installed before the executio
 
 # Getting started 
 
-Download/extract the zip file from [Releases](/releases). Place the FSLogixMigration-#.#.# Folder in a PSModule directory (e.g. C:\Users\<USERNAME>\Documents\WindowsPowerShell\Modules), and import the module with:  
+Download/extract the zip file from [Releases](/releases/latest). Place the FSLogixMigration-#.#.# Folder in a PSModule directory (e.g. C:\Users\<USERNAME>\Documents\WindowsPowerShell\Modules), and import the module with:  
 
 Import-Module FSLogixMigration 
 
