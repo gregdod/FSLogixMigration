@@ -1,6 +1,6 @@
 # FSLogixMigrationModule
 
-The FSLogix Profile Migration Module is currently private preview. This preview version is provided without a service level agreement, and it's not recommended for production workloads. Certain features might not be supported or might have constrained capabilities.  FDLogix Profile Container may not support all functionality of the formats that are converted. For more information, see Supplemental Terms of Use for Microsoft Azure Previews at https://azure.microsoft.com/en-us/support/legal/preview-supplemental-terms/.
+The FSLogix Profile Migration Module is currently private preview. This preview version is provided without a service level agreement, and it's not recommended for production workloads. Certain features might not be supported or might have constrained capabilities.  FSLogix Profile Container may not support all functionality of the formats that are converted. For more information, see Supplemental Terms of Use for Microsoft Azure Previews at https://azure.microsoft.com/en-us/support/legal/preview-supplemental-terms/.
 
 PowerShell Module for Converting UPD/Roaming Profiles to FSLogix Profile Containers
 Overview 
@@ -13,19 +13,20 @@ The target audience of this tool is System administrators to migrate the system 
 
 # Prerequisite  
 
-Following are the list of modules to be installed before the execution of the code: 
+Following are the list of PowerShell modules to be installed before the execution of the code: 
 
-> ActiveDirectory 
+| Module      | Install Command |
+| ----------- | ----------- |
+| ActiveDirectory      | `Add-WindowsFeature RSAT-AD-PowerShell`       |
+| Hyper-V   | `Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All`        |
+| Pester (version 4.8.1 or above) | `Install-Module -Name Pester -Force -SkipPublisherCheck`        |
 
-> Hyper-V 
-
-> Pester (version 4.8.1 or above) 
 
 > Administrator must have (at least) read access to ALL files in source profile. Any files that are not visible will not be copied. This script does not change source permissions. 
 
 # Getting started 
 
-Place the FSLogixMigration Folder in a PSModule directory (e.g. C:\Users\<USERNAME>\Documents\WindowsPowerShell\Modules), and import the module with:  
+Download/extract the zip file from [Releases](/releases). Place the FSLogixMigration-#.#.# Folder in a PSModule directory (e.g. C:\Users\<USERNAME>\Documents\WindowsPowerShell\Modules), and import the module with:  
 
 Import-Module FSLogixMigration 
 
@@ -33,20 +34,20 @@ If the module is imported successfully you will see the welcome message.
 
 At the time of import, a check will be done for the following modules: 
 
-> ActiveDirectory (Add-WindowsFeature RSAT-AD-PowerShell)
+> ActiveDirectory
 
-> Hyper-V (Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All)
+> Hyper-V
 
-> Pester (Install-Module -Name Pester -Force -SkipPublisherCheck)
+> Pester
  
 
 If any of these modules are not found, a warning message will be displayed: 
 
-ActiveDirectory Module not found on this machine. This tool is required to migrate profiles. 
+ActiveDirectory Module not found on this machine. This module is required to read user SIDs to migrate profiles. 
 
-Hyper-V Module not found on this machine. This tool is required to create VHDs. 
+Hyper-V Module not found on this machine. This module is required to create VHDs. 
 
-Pester Module version 4.8.1 or higher was not found on this machine. This tool is required to run Pester Tests. 
+Pester Module version 4.8.1 or higher was not found on this machine. This module is required to run Pester Tests. 
 
 # Running the commands 
 
