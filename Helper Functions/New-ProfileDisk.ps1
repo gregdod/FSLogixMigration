@@ -4,7 +4,8 @@
     
     .DESCRIPTION
         This function takes input data of source, target, username, and maximum vhd size, and logical sector size.
-        A VHD is created at the location specified in the Target parameter.
+        A VHD is created at the location specified in the Target parameter. 
+        If using the "UseExistingTarget" from the main script the existing file will be mounted instead of created
         The Username parameter is used to apply the appropriate permissions for the user logging into the profile after creation.
         
     
@@ -148,8 +149,19 @@
                     $OutputObject += $Item
                 }
                 else {
-                    Write-Output "$($Target.Substring(0, $Target.LastIndexOf('.'))) already exists- Skipping." 4>&1 | Write-Log -LogPath $LogPath
-                    Write-Output "$($Target.Substring(0, $Target.LastIndexOf('.'))) already exists- Skipping."
+                    Write-Output "$($Target.Substring(0, $Target.LastIndexOf('.'))) already exists- Updating." 4>&1 | Write-Log -LogPath $LogPath
+                    Write-Output "$($Target.Substring(0, $Target.LastIndexOf('.'))) already exists- Updating."
+                    icacls "$Target" /grant $Username`:f /t
+                    Write-Output "Mounting VHD $Target" 4>&1 | Write-Log -LogPath $LogPath
+                    Mount-VHD $Target -ErrorAction SilentlyContinue
+                    $drive = (Get-DiskImage -ImagePath $Target | Get-Disk | Get-Partition).DriveLetter
+                    sleep 6
+                    if (($Drive | Measure-Object).count -gt 1){
+                        $Drive = $drive[1]}
+                    $Item = New-Object system.object
+                    $Item | Add-Member -Type NoteProperty -Name Drive -Value "$drive`:\"
+                    $Item | Add-Member -Type NoteProperty -Name Target -Value $Target
+                    $OutputObject += $Item
                 }
             }
         }

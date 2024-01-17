@@ -38,6 +38,9 @@
     .PARAMETER IncludeRobocopyDetail
         Robocopy details are supressed by default and will just show an overall progress bar of moved bytes. If a terminal output of transmitted files in real-time is desired, uses this flag.
 
+    .PARAMETER UseExistingTarget
+         Allows for the re-copying of data from the UPD to the FSLogox VHDX, but will remove any files that don't exist in the source so be careful
+
     .PARAMETER LogPath
         Specifies log path. The file format is Text based, so a .log or .txt is expected.
 
@@ -63,6 +66,8 @@
         Last Edit: 7/23/19
 
         Modified by Mike Driest 10/14/2022.  Added Parameter SwapDirectoryNameComponents
+
+        Modified by Greg Dodge 1/12/2024 to add the -UseExistingTarget to allow for delta migrations while skipping the ntuser registry files if they exist. 
     
     #>
 Function Convert-UPDProfile {
@@ -96,6 +101,9 @@ Function Convert-UPDProfile {
 
         [Parameter()]
         [switch]$IncludeRobocopyDetail,
+
+        [Parameter()]
+        [switch]$UseExistingTarget,
 
         [Parameter()]
         [string]$LogPath
@@ -169,26 +177,47 @@ Function Convert-UPDProfile {
             Write-Output "-----------------------------------------------------------------------------" 4>&1 | Write-Log -LogPath $LogPath
             If (($P).Target -ne "Cannot Copy") {
                 $ProfileStartTime = Get-Date
-                if (!(Test-Path (($P).Target.Substring(0, ($P).Target.LastIndexOf('.')) + "*"))) {
+                $targetexists = Test-Path (($P).Target.Substring(0, ($P).Target.LastIndexOf('.')) + "*")
+                if (!$targetexists -or $UseExistingTarget.IsPresent) {
                     try {
                         $UPDProfilePath = (Mount-UPDProfile -ProfilePath (($P).ProfilePath) -ErrorAction Stop).drive
                     }
                     catch {
                         Write-Log -Message "Cannot mount source drive" -LogPath $LogPath
                         Write-Log -Message $_ -LogPath $LogPath
+                        Continue
                     }
 
-                    try {
-                        $Drive = (New-ProfileDisk -ProfilePath $UPDProfilePath -Target (($P).Target) -Username (($P).Username) -Size $VHDMaxSizeGB -SectorSize $VHDLogicalSectorSize -ErrorAction Stop).Drive
+                    #checking to see if the UPD Profile disk is bitlocker encrypted.
+                    if ((Get-BitLockerVolume -MountPoint $UPDProfilePath).volumestatus -ine "FullyDecrypted")
+                        {
+                        Write-Log -Message "User profile Disk is Bitlocker Encrypted, Please Decrypt and retry" -LogPath $LogPath
+                        try {
+                            Dismount-VHD (($P).ProfilePath) -ErrorAction Stop
+                            }
+                            catch {
+                                Write-Log -Message "Cannot dismount Source drive" -LogPath $LogPath
+                                Write-Log -Message $_ -LogPath $LogPath
+                            }
+                        Continue
+                        }
+
+                    try {$Drive = (New-ProfileDisk -ProfilePath $UPDProfilePath -Target (($P).Target) -Username (($P).Username) -Size $VHDMaxSizeGB -SectorSize $VHDLogicalSectorSize -ErrorAction Stop).Drive
                     }
                     catch {
-                        Write-Log -Message "Cannot creat new drive" -LogPath $LogPath
+                        Write-Log -Message "Cannot create new drive" -LogPath $LogPath
                         Write-Log -Message $_ -LogPath $LogPath
                     }
                     if ($Drive) {
-                        if ($IncludeRobocopyDetail) {
+                        if ($IncludeRobocopyDetail -and !$UseExistingTarget) {
                             $CopyParams = @{
                                 "IncludeRobocopyDetail" = $True
+                            }
+                        }
+                        if ($UseExistingTarget) {
+                            $CopyParams = @{
+                                "IncludeRobocopyDetail" = $True
+                                "UseExistingTarget" = $True
                             }
                         }
                         try {
@@ -198,28 +227,7 @@ Function Convert-UPDProfile {
                             Write-Log -Message "Could not copy" -LogPath $LogPath
                             Write-Log -Message $_ -LogPath $LogPath
                         }
-
                         $Destination = "$Drive`Profile"
-
-                        Write-Output "Verifying Source Matches Destination" 4>&1 | Write-Log -LogPath $LogPath
-                        if ($null -eq (Compare-Object -ReferenceObject (Get-ChildItem $UPDProfilePath -Recurse -force) -DifferenceObject (Get-ChildItem $Destination -Recurse -force))) {
-                            Write-Output "Source and Destination match." 4>&1 | Write-Log -LogPath $LogPath
-                            Write-Output "Source and Destination match."
-                        }
-                        Else { 
-                            write-warning "Source and Destination do not match." 3>&1 | Write-Log -LogPath $LogPath
-                            write-warning "Source and Destination do not match."
-                        }
-
-                        try {
-                            New-ProfileReg -UserSID ($P).UserSID -Drive $Drive -ErrorAction Stop
-                            Write-Output "Adding User and System NTFS Permissions" 4>&1 | Write-Log -LogPath $LogPath
-                        }
-                        catch {
-                            Write-Log -Message "Could not copy" -LogPath $LogPath
-                            Write-Log -Message $_ -LogPath $LogPath
-                        }
-
                         try {
                             icacls $Destination /setowner SYSTEM
                             icacls $Destination /inheritance:r
@@ -238,6 +246,39 @@ Function Convert-UPDProfile {
                             Write-Log -Message $_ -LogPath $LogPath
                         }
 
+                        try {
+                            Write-Output "Adding New Profile Registry Settings" 4>&1 | Write-Log -LogPath $LogPath
+                            New-ProfileReg -UserSID ($P).UserSID -Drive $Drive -ErrorAction Stop
+                        }
+                        catch {
+                            Write-Log -Message "Could not add New Profile Registry Settings" -LogPath $LogPath
+                            Write-Log -Message $_ -LogPath $LogPath
+                        }
+
+                        start-sleep 30
+                        Write-Output "Verifying Source Matches Destination" 4>&1 | Write-Log -LogPath $LogPath
+                        $folder1 = Get-ChildItem $UPDProfilePath -Recurse -force -ErrorAction SilentlyContinue
+                        $folder2 = Get-ChildItem $Destination -Recurse -force -ErrorAction SilentlyContinue
+                        if ($folder1 -and $folder2)
+                        {
+                            $comparesource2destination = Compare-Object $folder1 $folder2 -Property Name,Length,LastWriteTime  | Where-Object {$_.name -ine "Content.IE5" -and $_.name -ine "System Volume Information" -and $_.name -ine "Uvhd-Binding" -and $_.SideIndicator -eq "<="}
+                            if ($null -eq $comparesource2destination) {
+                                Write-Output "Source and Destination match." 4>&1 | Write-Log -LogPath $LogPath
+                                Write-Output "Source and Destination match."
+                            }
+                            Else { 
+                                write-warning "Source and Destination do not match." 3>&1 | Write-Log -LogPath $LogPath
+                                write-warning "Source and Destination do not match."
+                                Write-host $comparesource2destination
+                            }
+                        }
+                        Else
+                            {
+                            write-warning "Unable to get data for comparison." 3>&1 | Write-Log -LogPath $LogPath
+                            write-warning "Unable to get data for comparison."
+                            }
+
+
                         Write-Output "Dismounting $(($P).Target)" 4>&1 | Write-Log -LogPath $LogPath
 
                         try {
@@ -254,7 +295,7 @@ Function Convert-UPDProfile {
                             Dismount-VHD (($P).ProfilePath) -ErrorAction Stop
                         }
                         catch {
-                            Write-Log -Message "Cannot dismount Srouce drive" -LogPath $LogPath
+                            Write-Log -Message "Cannot dismount Source drive" -LogPath $LogPath
                             Write-Log -Message $_ -LogPath $LogPath
                         }
 
