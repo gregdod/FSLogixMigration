@@ -18,7 +18,7 @@ Following are the list of PowerShell modules to be installed before the executio
 | Module      | Install Command |
 | ----------- | ----------- |
 | ActiveDirectory      | `Add-WindowsFeature RSAT-AD-PowerShell`       |
-| Hyper-V   | `Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All`        |
+| Hyper-V*   | `Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All`        |
 | Pester (version 4.8.1 or above) | `Install-Module -Name Pester -Force -SkipPublisherCheck`        |
 
 
@@ -151,3 +151,9 @@ Solution:
 Run PowerShell as Administrator and run the following command to force to use TLS1.2 protocol
 
 `[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12`
+
+# Running without Hyper-V
+
+Don't have (or can't install) the Hyper-V platform on the conversion server? Note that `Install-WindowsFeature Hyper-V-PowerShell` alone is **not** sufficient — `Mount-VHD` requires the Hyper-V platform WMI classes, which many SQL/file/RDS servers deliberately don't have.
+
+[**fslogix-upd-migration-shims**](https://github.com/ElliottsTech/fslogix-upd-migration-shims) provides drop-in, diskpart-backed replacements for the four VHD cmdlets this module needs (`New-VHD`, `Mount-VHD`, `Dismount-VHD`, `Get-DiskImage`), plus an ADWS-free `Get-ADUser` shim — letting this module run on any elevated server, from any logon context, Hyper-V or not. It also ships a resumable single-user/batch converter wrapper with verified source deletion.
